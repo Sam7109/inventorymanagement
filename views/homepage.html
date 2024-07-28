@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management</title>
+    <style>
+        /* Reset some default styling */
+        body, h1, form, input, textarea, button {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Basic styling */
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #f0f8ff, #e6f7ff); /* Gradient background */
+            color: #333;
+            display: flex;
+            justify-content: center; /* Center horizontally */
+            align-items: center; /* Center vertically */
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px; /* Add some padding around the edges */
+        }
+
+        .container {
+            display: flex; /* Use flexbox to create a side-by-side layout */
+            gap: 20px; /* Add space between the form and the item list */
+            background-color: #fff;
+            border-radius: 12px; /* Rounded corners */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* Larger shadow for a lifted effect */
+            padding: 20px;
+            width: 100%;
+            max-width: 900px; /* Increase container width */
+        }
+
+        .form-container {
+            width: 300px; /* Set a fixed width for the form container */
+            background-color: #e6f7ff; /* Light blue background for the form */
+            border-radius: 8px; /* Rounded corners for the form */
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Shadow for the form */
+        }
+
+        .item-list-container {
+            flex: 1; /* Allow item list container to take up remaining space */
+            background-color: #f9f9f9; /* Slightly off-white background */
+            border-radius: 8px; /* Rounded corners for the item list */
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Shadow for the item list */
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 26px;
+            color: #007BFF; /* Blue color for the heading */
+            text-align: center;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 8px; /* Increased margin for better spacing */
+            font-weight: bold;
+            color: #333;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px; /* Increased padding for comfort */
+            margin-bottom: 14px; /* Increased margin */
+            font-size: 15px; /* Slightly larger font size */
+            background-color: #fff; /* White background for inputs */
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px; /* Increased minimum height for textarea */
+        }
+
+        button {
+            background-color: #28a745; /* Green button */
+            border: none;
+            color: white;
+            padding: 10px 18px; /* Increased padding */
+            border-radius: 4px;
+            font-size: 15px; /* Slightly larger font size */
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.3s ease; /* Smooth transition for hover effect */
+        }
+
+        button:hover {
+            background-color: #218838; /* Darker green on hover */
+        }
+
+        #responseMessage {
+            margin-top: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        #itemList {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            width: 100%;
+            background-color: #fff; /* White background for item list */
+        }
+
+        .item {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f1f1f1; /* Light grey background for items */
+        }
+
+        .item button {
+            margin-right: 10px;
+            background-color: #007BFF; /* Blue button for item actions */
+            border: none;
+            color: white;
+            padding: 6px 12px; /* Adjusted padding */
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .item button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+
+        .out-of-stock {
+            color: #dc3545; /* Red color for out-of-stock items */
+            font-weight: bold; /* Make the text bold */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <h1>Add New Item</h1>
+            <form id="itemForm">
+                <label for="itemname">Item Name:</label>
+                <input type="text" id="itemname" name="itemname" required>
+
+                <label for="description">Description:</label>
+                <textarea id="description" name="description" rows="4" required></textarea>
+
+                <label for="quantity">Quantity:</label>
+                <input type="number" id="quantity" name="quantity" min="1" required>
+
+                <button type="submit">Add Item</button>
+            </form>
+            <div id="responseMessage"></div>
+        </div>
+
+        <div class="item-list-container">
+            <div id="itemList">
+                <!-- Items will be appended here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchItems();
+        });
+
+        document.getElementById('itemForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the default form submission
+
+            const data = {
+                itemname: document.getElementById('itemname').value,
+                description: document.getElementById('description').value,
+                quantity: document.getElementById('quantity').value
+            };
+
+            axios.post('/submit/submitdetails', data, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                const item = response.data.data;
+                addItemToList(item);
+                document.getElementById('responseMessage').innerText = 'Item added successfully!';
+                document.getElementById('responseMessage').style.color = 'green';
+            })
+            .catch(error => {
+                document.getElementById('responseMessage').innerText = 'There was an error adding the item.';
+                document.getElementById('responseMessage').style.color = 'red';
+            });
+        });
+
+        function fetchItems() {
+            axios.get('/submit/getdetails')
+                .then(response => {
+                    console.log('Response data:', response.data);
+
+                    const items = response.data.data || [];
+
+                    const itemList = document.getElementById('itemList');
+                    itemList.innerHTML = '';
+
+                    items.forEach(item => {
+                        addItemToList(item);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching items:', error);
+                });
+        }
+
+        function addItemToList(item) {
+            const itemList = document.getElementById('itemList');
+            const itemDiv = document.createElement('div');
+            itemDiv.classList.add('item');
+            itemDiv.setAttribute('id', `item-${item.id}`);
+            itemDiv.innerHTML = `
+                <strong>${item.itemname}</strong><br>
+                Description: ${item.description || 'N/A'}<br>
+                Quantity: <span id="quantity-${item.id}" class="${item.quantity === 0 ? 'out-of-stock' : ''}">${item.quantity}</span><br>
+                <button onclick="buyItem(${item.id}, 1)">Buy 1</button>
+                <button onclick="buyItem(${item.id}, 5)">Buy 5</button>
+            `;
+            itemList.appendChild(itemDiv);
+        }
+
+        function buyItem(id, quantity) {
+            axios.put(`/submit/updatequantity/${id}`, {
+                quantity: quantity
+            })
+            .then(response => {
+                const updatedQuantity = response.data.data.quantity;
+                const itemDiv = document.getElementById(`item-${id}`);
+                const quantitySpan = itemDiv.querySelector(`#quantity-${id}`);
+                quantitySpan.innerText = updatedQuantity;
+
+                if (updatedQuantity === 0) {
+                    quantitySpan.classList.add('out-of-stock');
+                } else {
+                    quantitySpan.classList.remove('out-of-stock');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating quantity:', error);
+            });
+        }
+    </script>
+</body>
+</html>
